@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "kanjiextract"
+version = "0.1.0"
+description = ""
+authors = ["FeelinVoids_"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+
+[tool.poetry.group.dev.dependencies]
+autopep8 = "^1.7.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry.scripts]
+kanjiextract = 'kanjiextract.__main__:main'

@@ -20,11 +20,12 @@ def generate_jisho_links(kanjis: Iterable[str] | str) -> list[str]:
 
     links = []
 
-    n = 8
+    n = 10
     chunks = [k[i:i+n] for i in range(0, len(k), n)]
 
     for chunk in chunks:
-        l = urllib.parse.quote(f"{chunk}#kanji")
+        line = "".join(chunk)
+        l = urllib.parse.quote(f"{line}#kanji")
         links.append(f"https://jisho.org/search/{l}")
 
     return links
@@ -71,7 +72,7 @@ def main():
         print("Leave empty to exit")
         print()
         try:
-            data = input("> ")
+            data = input("> ").strip().strip("\"")
         except KeyboardInterrupt:
             return
         if len(data) == 0:

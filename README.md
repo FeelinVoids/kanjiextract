@@ -2,7 +2,7 @@
 
 The script was created to simplify the study of the Japanese language by breaking down texts.
 
-The script receives a text file as input, finds all the kanji in it, and prints jisho.org links for all kanji in the console
+It receives the path to a text file as input, finds all the kanji in it, and prints jisho.org links for all kanji to the console
 
 # Installation
 

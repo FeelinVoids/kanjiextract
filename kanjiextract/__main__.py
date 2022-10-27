@@ -39,13 +39,13 @@ def normalize_path(path: str) -> Path:
 
 
 def process(filepath: Path):
-    kanjis = set()
+    kanjis = []
 
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             for symbol in f.read():
-                if is_kanji(symbol):
-                    kanjis.add(symbol)
+                if is_kanji(symbol) and not symbol in kanjis:
+                    kanjis.append(symbol)
     except UnicodeDecodeError:
         print(f"Unable to read file {filepath}. Is it a text file?")
         return

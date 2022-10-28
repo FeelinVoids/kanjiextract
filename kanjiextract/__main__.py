@@ -1,83 +1,112 @@
-import sys
-import os
-import urllib.parse
-from pathlib import Path
-from typing import Iterable
+from fire import Fire
 
-VERSION = "0.1.0"
+from . import utils
+
+VERSION = "0.1.1"
 
 
-def is_kanji(char: str) -> bool:
-    u = ord(char)
-    return u > 19968 and u < 40895
+class IgnoreFilePipeline:
+    def set(self, path: str = "", move: bool = False):
+        """
+        Change the path of the ignore list file.
+
+        Use --move flag to add existing kanji to it.
+        """
+        if len(path) == 0:
+            path = None
+
+        p = utils.set_ignored_file_path(path, move)
+        if p is None:
+            print("External ignore list disabled")
+        else:
+            print(f"Ignore list file path set to {p}")
+
+            if not move:
+                print(f"If you want to move your previously added kanji,"
+                      f" execute this command with --move flag")
+
+    def path(self):
+        """ Print the external ignore list file path """
+        internal_config = utils.get_internal_config()
+        if internal_config.external_ignored_file_path is not None:
+            print(internal_config.external_ignored_file_path)
 
 
-def generate_jisho_links(kanjis: Iterable[str] | str) -> list[str]:
-    if isinstance(kanjis, str):
-        k = "".join([kanji for kanji in kanjis])
-    else:
-        k = [kanji for kanji in kanjis]
+class IgnoreListPipeline:
+    def __init__(self):
+        self.file = IgnoreFilePipeline()
 
-    links = []
+    def add(self, kanji: str = "", file: str | None = None):
+        """
+        Add kanji to the ignore list.
 
-    n = 10
-    chunks = [k[i:i+n] for i in range(0, len(k), n)]
+        Use --file <path> to add all kanji from the file
+        """
+        if file is not None:
+            with open(utils.normalize_path(file), "r", encoding="utf-8") as f:
+                count = utils.add_ignored_kanji(f.read())
+        else:
+            count = utils.add_ignored_kanji(kanji)
 
-    for chunk in chunks:
-        line = "".join(chunk)
-        l = urllib.parse.quote(f"{line}#kanji")
-        links.append(f"https://jisho.org/search/{l}")
+        print(f"Added {count} new kanji to the ignore list")
 
-    return links
+    def remove(self, kanji: str = "", file: str | None = None):
+        """
+        Remove kanji from the ignore list.
+
+        Use --file <path> to remove all kanji contained in the file
+        """
+        if file is not None:
+            with open(utils.normalize_path(file), "r", encoding="utf-8") as f:
+                count = utils.remove_ignored_kanji(f.read())
+        else:
+            count = utils.remove_ignored_kanji(kanji)
+
+        print(f"Removed {count} kanji from the ignore list")
+
+    def list(self, no_spaces: bool = False):
+        """
+        Print the kanji contained in the ignore list
+
+        --no_spaces - print without spaces
+        """
+        j = " "
+        if no_spaces:
+            j = ""
+        print(j.join(utils.get_ignored_kanji()))
+
+    def set(self, kanji: str = "", file: str | None = None):
+        """
+        Overwrite kanji ignore list with new contents.
+        Execute without parameters to clear the ignore list.
+
+        Use --file <path> to read all kanji contained in the file
+        """
+        if file is not None:
+            with open(utils.normalize_path(file), "r", encoding="utf-8") as f:
+                old, new = utils.set_ignored_kanji(f.read())
+        else:
+            old, new = utils.set_ignored_kanji(kanji)
+
+        print(f"{old} -> {new}")
+        print(f"({len(old)} -> {len(new)})")
 
 
-def normalize_path(path: str) -> Path:
-    filepath = Path(path)
-    if not filepath.is_absolute():
-        filepath = Path(__file__).parent / filepath
-    return filepath.resolve()
+class Pipeline:
+    def __init__(self):
+        self.ignore = IgnoreListPipeline()
 
+    def extract(self, filepath: str, all: bool = False):
+        """
+        Find all kanji in the file and make links to jisho.org
 
-def process(filepath: Path):
-    kanjis = []
-
-    try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            for symbol in f.read():
-                if is_kanji(symbol) and not symbol in kanjis:
-                    kanjis.append(symbol)
-    except UnicodeDecodeError:
-        print(f"Unable to read file {filepath}. Is it a text file?")
-        return
-
-    print(f"Found {len(kanjis)} kanjis:")
-    print(" ".join(kanjis))
-    print()
-    print(f"jisho.org links:")
-    for link in generate_jisho_links(kanjis):
-        print(link)
-        print()
+        --all - do not use ignore list
+        """
+        utils.extract(filepath, use_ignore_list=not all)
 
 
 def main():
-    print(f"kanjiextract {VERSION}")
-
-    if len(sys.argv) > 1:
-        process(" ".join(sys.argv[1:]))
-        return
-    
-    while True:
-        print()
-        print("Paste the path to a text file to process")
-        print("Leave empty to exit")
-        print()
-        try:
-            data = input("> ").strip().strip("\"")
-        except KeyboardInterrupt:
-            return
-        if len(data) == 0:
-            return
-        process(normalize_path(data))
+    Fire(Pipeline)
 
 
 if __name__ == "__main__":

@@ -1,3 +1,6 @@
 *.txt
 .venv
 .pyc
+*.json
+.vscode
+.idea
